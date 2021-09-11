@@ -20,15 +20,30 @@ class DFAFilter:
         self.keyword_chains = {}
         self.delimit = '\x00'
 
+    def add_keyword(self, chars, level):
+        for i in range(len(chars)):
+            if chars[i] in level:
+                level = level[chars[i]]
+            else:
+                if not isinstance(level, dict):
+                    break
+                for j in range(i, len(chars)):
+                    level[chars[j]] = {}
+                    last_level, last_char = level, chars[j]
+                    level = level[chars[j]]
+
+                last_level[last_char] = {self.delimit: 0}
+                break
+
     def add(self, keyword):  # 将作为参数的敏感词传入敏感词库keyword_chains
         """需要根据是否是中文，中文的话就要考虑拼音、汉字与部首的组合，把各种组合都存进敏感词库，英文字母全部转化为小写存入敏感词库"""
-        keyword_copy = ""
+
         if '\u4e00' <= keyword[0] <= '\u9fff':  # 如果敏感词是汉字
             len_keyword = len(keyword)
             res_queue.clear()  # 每个新的敏感词操作都要清空res_queue，否则后面的会一直添加到前面敏感词的后面
             type_nums(0, [], len_keyword)  # 通过这个操作可以更新全局变量res_queue，这个通过数字存储了敏感词所有表现形式的所有组合
-            print(type(keyword[0]))
             for i in range(len(res_queue)):  # 遍历所有可能的组合，并加入敏感词库
+                keyword_copy = ""
                 for j in range(len(res_queue[i])):
                     if res_queue[i][j] == 0:  # 说明这个位置将用拼音表示
                         keyword_copy += pypinyin.lazy_pinyin(keyword[j])[0]
@@ -42,26 +57,12 @@ class DFAFilter:
                             keyword_copy += tradition_simple_dic[keyword[j]]
                         else:
                             keyword_copy += keyword[j]
-                print(keyword_copy)
-
+                self.add_keyword(keyword_copy, self.keyword_chains)         # 将每一种敏感词的组合表现形式都加入到敏感词库中
         else:
             keyword = keyword.lower()
             level = self.keyword_chains
             chars = keyword
-
-            for i in range(len(chars)):
-                if chars[i] in level:
-                    level = level[chars[i]]
-                else:
-                    if not isinstance(level, dict):
-                        break
-                    for j in range(i, len(chars)):
-                        level[chars[j]] = {}
-                        last_level, last_char = level, chars[j]
-                        level = level[chars[j]]
-
-                    last_level[last_char] = {self.delimit: 0}
-                    break
+            self.add_keyword(chars, level)
 
         # if i == len(chars) - 1:
         #     level[self.delimit] = 0

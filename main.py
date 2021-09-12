@@ -8,10 +8,8 @@ from xmnlp.checker import unicode
 
 n = 3
 res_queue = []
-tradition_simple_dic = {}  # 用来存简体字与繁体字的对应关系
-simple_tradition_dic = {}  # 用来存简体字与繁体字的对应关系
-origin_word = ""  # 用来存测试文件的
-
+origin_word = {}  # 用来存测试文件的
+hash_keyword = {}
 
 class DFAFilter:
 
@@ -35,6 +33,7 @@ class DFAFilter:
                 break
 
     def add(self, keyword):  # 将作为参数的敏感词传入敏感词库keyword_chains
+        self.add_keyword(keyword, origin_word)          # 将最原始的敏感词加入到origin_word，方便后续输出
         """需要根据是否是中文，中文的话就要考虑拼音、汉字与部首的组合，把各种组合都存进敏感词库，英文字母全部转化为小写存入敏感词库"""
 
         if '\u4e00' <= keyword[0] <= '\u9fff':  # 如果敏感词是汉字
@@ -51,10 +50,12 @@ class DFAFilter:
                     else:  # 说明这个位置将用繁体字形式表示
                         keyword_copy += zhconv.convert(keyword[j], 'zh-tw')
                 self.add_keyword(keyword_copy, self.keyword_chains)  # 将每一种敏感词的组合表现形式都加入到敏感词库中
+                hash_keyword[keyword_copy] = keyword
         else:
             keyword = keyword.lower()
             level = self.keyword_chains
             chars = keyword
+            hash_keyword[chars] = chars
             self.add_keyword(chars, level)
 
         # if i == len(chars) - 1:
@@ -103,17 +104,11 @@ class DFAFilter:
 def read_file(file_path):  # 读出文件内容，以字符串的形式存在data
     with open(file_path, 'r', encoding='utf-8') as file:
         original_word = file.readlines()
-    print(original_word)
     return original_word
-    # original_word = sorted([i.split('\n')[0] for i in original_word])  # 用换行符将不同敏感词分开，每一个敏感词作为一个字符串存在列表中
-    # print(type(original_word))
 
 
 def print_files(file_name):
     pass
-
-
-# ------------------------------------以下两个函数建立繁体字到简体字以及简体字到繁体字的映射------------------------------------
 
 
 # ------------------------------------用dfs求解敏感词表示形式可能的所有组合------------------------------------
@@ -141,7 +136,6 @@ if __name__ == "__main__":
     org = read_file(path)  # 读入测试文件
     # -------------------------------添加敏感词到一个字典中-------------------------------
     gfw.parse(r"D:\own detailed files\FZU官方资料\软工\第一次个人编程作业\words.txt")  # 解析敏感词文件，将敏感词文件里的敏感词读出并存到gfw.keyword_chains
-    print(gfw.keyword_chains)
     # -------------------------------测试敏感词的核心算法-------------------------------
     gfw.filter(org)
     # -------------------------------将检测结果写入指定文件-------------------------------

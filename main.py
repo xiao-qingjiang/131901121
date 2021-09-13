@@ -67,32 +67,44 @@ class DFAFilter:
                 self.add(keyword.strip())  # 将敏感词库中的敏感词逐个添加到self.keyword_chains里
 
     def filter(self, message):  # 过滤出敏感词，同时按要求输出
+
         for lines in range(len(message)):
             message[lines] = message[lines].lower()
             level = self.keyword_chains
-            step_ins = 0
             record = ""
-            for start in range(len(message[lines])):
-                char = message[lines][start]
+            for i in range(len(message[lines])):
+                char = message[lines][i]
+                if char.isalpha():              # 如果是字母，则转为小写
+                    char = char.lower()
+                if '\u4e00' <= char <= '\u9fff':        # 如果是汉字，则转为简体
+                    char = zhconv.convert(char, 'hans')
                 if char in level:
-                    record += char
-                    step_ins += 1
-                    if self.delimit not in level[char]:
-                        level = level[char]
-                    else:
-                        # print(lines + 1, record)
-                        # print("Line{}: <{}> 盗@#版".format(lines, ))
-                        start += step_ins - 1
+                    print()
+                    start = i
+                    while start < len(message[lines]):
+                        char = message[lines][start]
+                        if not char.isalpha() and not ('\u4e00' <= char <= '\u9fff'):
+                            start += 1
+                            continue
+                        else:
+                            if char not in level:
+                                break
+                            if self.delimit not in level[char]:
+                                level = level[char]
+
+                            elif self.delimit in level[char]:
+                                print(lines, message[lines][i:start + 1])
+                                level = self.keyword_chains
+                                i = start + 1
+                        start += 1
                 else:
                     continue
 
-    '''
-        def output_doc(self, filename):
+    def output_doc(self, filename):
         with open(filename, 'a', encoding='utf-8') as file_object:
-            file_object.write("tot : " + str(self.start) + '\n')
+            file_object.write("tot : " + str(self.index) + '\n')
             for info in self.answer:
                 file_object.write(info)
-    '''
 
 
 # def test_first_character():
@@ -136,6 +148,7 @@ if __name__ == "__main__":
     org = read_file(path)  # 读入测试文件
     # -------------------------------添加敏感词到一个字典中-------------------------------
     gfw.parse(r"D:\own detailed files\FZU官方资料\软工\第一次个人编程作业\words.txt")  # 解析敏感词文件，将敏感词文件里的敏感词读出并存到gfw.keyword_chains
+
     # -------------------------------测试敏感词的核心算法-------------------------------
     gfw.filter(org)
     # -------------------------------将检测结果写入指定文件-------------------------------

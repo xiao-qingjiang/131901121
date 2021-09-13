@@ -10,6 +10,15 @@ n = 3
 res_queue = []
 origin_word = {}  # 用来存测试文件的
 hash_keyword = {}
+result = []
+
+
+def output_doc(filename):
+    with open(filename, 'a', encoding='utf-8') as file_object:
+        file_object.write("Total: " + str(len(result)) + '\n')
+        for i in result:
+            file_object.write(i)
+
 
 class DFAFilter:
 
@@ -33,7 +42,7 @@ class DFAFilter:
                 break
 
     def add(self, keyword):  # 将作为参数的敏感词传入敏感词库keyword_chains
-        self.add_keyword(keyword, origin_word)          # 将最原始的敏感词加入到origin_word，方便后续输出
+        self.add_keyword(keyword, origin_word)  # 将最原始的敏感词加入到origin_word，方便后续输出
         """需要根据是否是中文，中文的话就要考虑拼音、汉字与部首的组合，把各种组合都存进敏感词库，英文字母全部转化为小写存入敏感词库"""
 
         if '\u4e00' <= keyword[0] <= '\u9fff':  # 如果敏感词是汉字
@@ -71,16 +80,16 @@ class DFAFilter:
         for lines in range(len(message)):
             message[lines] = message[lines].lower()
             level = self.keyword_chains
-            record = ""
+
             for i in range(len(message[lines])):
                 char = message[lines][i]
-                if char.isalpha():              # 如果是字母，则转为小写
+                if char.isalpha():  # 如果是字母，则转为小写
                     char = char.lower()
-                if '\u4e00' <= char <= '\u9fff':        # 如果是汉字，则转为简体
+                if '\u4e00' <= char <= '\u9fff':  # 如果是汉字，则转为简体
                     char = zhconv.convert(char, 'hans')
                 if char in level:
-                    print()
                     start = i
+                    record = ""
                     while start < len(message[lines]):
                         char = message[lines][start]
                         if not char.isalpha() and not ('\u4e00' <= char <= '\u9fff'):
@@ -89,22 +98,21 @@ class DFAFilter:
                         else:
                             if char not in level:
                                 break
+                            record += char
                             if self.delimit not in level[char]:
                                 level = level[char]
 
                             elif self.delimit in level[char]:
-                                print(lines, message[lines][i:start + 1])
+                                # print(lines, message[lines][i:start + 1])
+                                if record in hash_keyword:
+                                    result.append(
+                                        "Line" + str(lines) + ": <" + hash_keyword[record] + "> " + message[lines][
+                                                                                                    i:start + 1] + "\n")
                                 level = self.keyword_chains
                                 i = start + 1
                         start += 1
                 else:
                     continue
-
-    def output_doc(self, filename):
-        with open(filename, 'a', encoding='utf-8') as file_object:
-            file_object.write("tot : " + str(self.index) + '\n')
-            for info in self.answer:
-                file_object.write(info)
 
 
 # def test_first_character():
@@ -151,6 +159,7 @@ if __name__ == "__main__":
 
     # -------------------------------测试敏感词的核心算法-------------------------------
     gfw.filter(org)
+    output_doc(r"res.txt")
     # -------------------------------将检测结果写入指定文件-------------------------------
 
     print(time.time() - t)

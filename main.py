@@ -75,9 +75,6 @@ class DFAFilter:
             hash_keyword[chars] = chars
             self.add_keyword(chars, level)
 
-        # if i == len(chars) - 1:
-        #     level[self.delimit] = 0
-
     def parse(self, path):  # 解析路径，读入文件，并去除每个词前后的空格,最终根据
         with open(path, encoding='utf-8') as f:
             for keyword in f:
@@ -110,7 +107,6 @@ class DFAFilter:
                                     level = level[char]
 
                                 elif self.delimit in level[char]:
-                                    # print(lines, message[lines][i:start + 1])
                                     if record in hash_keyword:
                                         result.append(
                                             "Line" + str(lines + 1) + ": <" + hash_keyword[record] + "> " + message[
@@ -136,13 +132,10 @@ class DFAFilter:
                                 record += char
                                 if self.delimit in level:
                                     level = self.keyword_chains
-                                    # print(record)
                                     temp_str = ""
                                     for temp in record:
-                                        # print(temp, end=" ")
                                         if '\u4e00' <= temp <= '\u9fff':
                                             temp_str += temp
-                                    # print(record)
                                     if ''.join(pypinyin.lazy_pinyin(temp_str)) in hash_keyword:
                                         result.append(
                                             "Line" + str(lines + 1) + ": <" + hash_keyword[''.join(pypinyin.lazy_pinyin(temp_str))] + "> " + record + "\n")
@@ -154,16 +147,6 @@ class DFAFilter:
                             continue
                 elif len(record) > 0 :
                     record += char
-
-
-
-
-
-
-# def test_first_character():
-#     gfw = DFAFilter()
-#     gfw.add("1989年")
-#     assert gfw.filter("1989", "*") == "1989"
 
 
 def read_file(file_path):  # 读出文件内容，以字符串的形式存在data
@@ -219,7 +202,6 @@ def type_nums(depth, queue, lens):  # 三个参数分别为当前搜索深度，
 
 
 if __name__ == "__main__":
-    t = time.time()
     if len(sys.argv) > 1:
         words_txt = sys.argv[1]
         org_txt = sys.argv[2]
@@ -227,7 +209,7 @@ if __name__ == "__main__":
     else:
         words_txt = "words.txt"
         org_txt = "org.txt"
-        ans_txt = "ans2.txt"
+        ans_txt = "ans.txt"
     gfw = DFAFilter()
 
     # -------------------------------读入测试文件-------------------------------
@@ -238,11 +220,6 @@ if __name__ == "__main__":
     chaizi(str_hanzi_word, gfw)
 
     # -------------------------------测试敏感词的核心算法-------------------------------
-    # print(gfw.keyword_chains)
     gfw.filter(org)
     output_doc(ans_txt)
     # -------------------------------将检测结果写入指定文件-------------------------------
-
-    print(time.time() - t)
-
-    # test_first_character()

@@ -89,12 +89,12 @@ class DFAFilter:
             message[lines] = message[lines].lower()
             level = self.keyword_chains
             record = ""
+            flag = 0
             for i in range(len(message[lines])):
-
                 char = message[lines][i]
                 if char.isalpha():  # 如果是字母，则转为小写
                     char = char.lower()
-                    if char in level:
+                    if (char in level) and (flag == 0):
                         start = i
                         record = ""
                         while start < len(message[lines]):
@@ -118,13 +118,14 @@ class DFAFilter:
                                                                                                             i:start + 1] + "\n")
                                     level = self.keyword_chains
                                     i = start + 1
+                                    break
                             start += 1
                         continue
                     if '\u4e00' <= char <= '\u9fff':  # 如果是汉字，则转为简体
                         char = zhconv.convert(char, 'hans')
                         pinyin = pypinyin.lazy_pinyin(char)[0]
                         if pinyin[0] in level:
-                            start = i
+                            flag = 1
                             for j in range(len(pinyin)):
                                 tmp_char = pinyin[j]
                                 if tmp_char not in level:
@@ -135,14 +136,26 @@ class DFAFilter:
                                 record += char
                                 if self.delimit in level:
                                     level = self.keyword_chains
-                                    # print(record)
-                                    if ''.join(pypinyin.lazy_pinyin(record)) in hash_keyword:
+                                    print(record)
+                                    temp_str = ""
+                                    for temp in record:
+                                        print(temp, end=" ")
+                                        if '\u4e00' <= temp <= '\u9fff':
+                                            temp_str += temp
+                                    print(record)
+                                    if ''.join(pypinyin.lazy_pinyin(temp_str)) in hash_keyword:
                                         result.append(
-                                            "Line" + str(lines + 1) + ": <" + hash_keyword[''.join(pypinyin.lazy_pinyin(record))] + "> " + record + "\n")
+                                            "Line" + str(lines + 1) + ": <" + hash_keyword[''.join(pypinyin.lazy_pinyin(temp_str))] + "> " + record + "\n")
                                     record = ""
                         else:
                             level = self.keyword_chains
+                            flag = 0
+                            record = ""
                             continue
+                elif len(record) > 0 :
+                    record += char
+
+
 
 
 

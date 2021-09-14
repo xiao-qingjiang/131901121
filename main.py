@@ -136,13 +136,13 @@ class DFAFilter:
                                 record += char
                                 if self.delimit in level:
                                     level = self.keyword_chains
-                                    print(record)
+                                    # print(record)
                                     temp_str = ""
                                     for temp in record:
-                                        print(temp, end=" ")
+                                        # print(temp, end=" ")
                                         if '\u4e00' <= temp <= '\u9fff':
                                             temp_str += temp
-                                    print(record)
+                                    # print(record)
                                     if ''.join(pypinyin.lazy_pinyin(temp_str)) in hash_keyword:
                                         result.append(
                                             "Line" + str(lines + 1) + ": <" + hash_keyword[''.join(pypinyin.lazy_pinyin(temp_str))] + "> " + record + "\n")
@@ -199,6 +199,7 @@ def chaizi(keywords, DFA_instance):
             res_word += second.name
             res += res_word
         DFA_instance.add_keyword(res, DFA_instance.keyword_chains)
+        hash_keyword[res] = word
 
 
 # ------------------------------------用dfs求解敏感词表示形式可能的所有组合------------------------------------
@@ -234,9 +235,10 @@ if __name__ == "__main__":
     org = read_file(org_txt)  # 读入测试文件
     # -------------------------------添加敏感词到一个字典中-------------------------------
     gfw.parse(words_txt)  # 解析敏感词文件，将敏感词文件里的敏感词读出并存到gfw.keyword_chains
-    # chaizi(str_hanzi_word, gfw)
+    chaizi(str_hanzi_word, gfw)
 
     # -------------------------------测试敏感词的核心算法-------------------------------
+    # print(gfw.keyword_chains)
     gfw.filter(org)
     output_doc(ans_txt)
     # -------------------------------将检测结果写入指定文件-------------------------------

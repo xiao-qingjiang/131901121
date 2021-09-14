@@ -88,13 +88,36 @@ class DFAFilter:
         for lines in range(len(message)):
             message[lines] = message[lines].lower()
             level = self.keyword_chains
-
+            record = ""
             for i in range(len(message[lines])):
+
                 char = message[lines][i]
                 if char.isalpha():  # 如果是字母，则转为小写
                     char = char.lower()
-                if '\u4e00' <= char <= '\u9fff':  # 如果是汉字，则转为简体
-                    char = zhconv.convert(char, 'hans')
+                    if '\u4e00' <= char <= '\u9fff':  # 如果是汉字，则转为简体
+                        char = zhconv.convert(char, 'hans')
+                        pinyin = pypinyin.lazy_pinyin(char)[0]
+                        if pinyin[0] in level:
+                            start = i
+                            for j in range(len(pinyin)):
+                                tmp_char = pinyin[j]
+                                if tmp_char not in level:
+                                    break
+                                if self.delimit not in level:
+                                    level = level[tmp_char]
+                            else:
+                                record += char
+                                if self.delimit in level:
+                                    level = self.keyword_chains
+                                    # print(record)
+                                    if ''.join(pypinyin.lazy_pinyin(record)) in hash_keyword:
+                                        result.append(
+                                            "Line" + str(lines + 1) + ": <" + hash_keyword[''.join(pypinyin.lazy_pinyin(record))] + "> " + record + "\n")
+                                    record = ""
+                        else:
+                            level = self.keyword_chains
+                            continue
+
                 if char in level:
                     start = i
                     record = ""

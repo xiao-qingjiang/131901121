@@ -4,6 +4,11 @@ import time
 
 import pypinyin
 import zhconv
+import pychai
+import os
+import sys
+
+from pychai import Schema
 from xmnlp.checker import unicode
 
 n = 3
@@ -11,6 +16,7 @@ res_queue = []
 origin_word = {}  # 用来存测试文件的
 hash_keyword = {}
 result = []
+str_hanzi_word = []
 
 
 def output_doc(filename):
@@ -42,10 +48,12 @@ class DFAFilter:
                 break
 
     def add(self, keyword):  # 将作为参数的敏感词传入敏感词库keyword_chains
+
         self.add_keyword(keyword, origin_word)  # 将最原始的敏感词加入到origin_word，方便后续输出
         """需要根据是否是中文，中文的话就要考虑拼音、汉字与部首的组合，把各种组合都存进敏感词库，英文字母全部转化为小写存入敏感词库"""
 
         if '\u4e00' <= keyword[0] <= '\u9fff':  # 如果敏感词是汉字
+            str_hanzi_word.append(keyword)
             len_keyword = len(keyword)
             res_queue.clear()  # 每个新的敏感词操作都要清空res_queue，否则后面的会一直添加到前面敏感词的后面
             type_nums(0, [], len_keyword)  # 通过这个操作可以更新全局变量res_queue，这个通过数字存储了敏感词所有表现形式的所有组合
@@ -106,8 +114,8 @@ class DFAFilter:
                                 # print(lines, message[lines][i:start + 1])
                                 if record in hash_keyword:
                                     result.append(
-                                        "Line" + str(lines) + ": <" + hash_keyword[record] + "> " + message[lines][
-                                                                                                    i:start + 1] + "\n")
+                                        "Line" + str(lines + 1) + ": <" + hash_keyword[record] + "> " + message[lines][
+                                                                                                        i:start + 1] + "\n")
                                 level = self.keyword_chains
                                 i = start + 1
                         start += 1
@@ -127,8 +135,33 @@ def read_file(file_path):  # 读出文件内容，以字符串的形式存在dat
     return original_word
 
 
-def print_files(file_name):
-    pass
+def chaizi(keywords, DFA_instance):
+    # ti = time.time()
+    wubi98 = Schema('wubi98')
+    wubi98.run()
+    for word in keywords:
+        res = ""
+        for i in word:
+            if not ('\u4e00' <= i <= '\u9fff'):
+                continue
+            if not (i in wubi98.tree):
+                continue
+            tree = wubi98.tree[i]
+            first = tree.first
+            second = tree.second
+            while first.structure == 'h':
+                if first.first is None:
+                    break
+                first = first.first
+            while second.structure == 'h':
+                if second.second is None:
+                    break
+                second = second.second
+            res_word = ""
+            res_word += first.name[0]
+            res_word += second.name
+            res += res_word
+        DFA_instance.add_keyword(res, DFA_instance.keyword_chains)
 
 
 # ------------------------------------用dfs求解敏感词表示形式可能的所有组合------------------------------------
@@ -149,17 +182,26 @@ def type_nums(depth, queue, lens):  # 三个参数分别为当前搜索深度，
 
 if __name__ == "__main__":
     t = time.time()
+    if len(sys.argv) > 1:
+        words_txt = sys.argv[1]
+        org_txt = sys.argv[2]
+        ans_txt = sys.argv[3]
+    else:
+        words_txt = "words.txt"
+        org_txt = "org.txt"
+        ans_txt = "ans2.txt"
     gfw = DFAFilter()
 
     # -------------------------------读入测试文件-------------------------------
-    path = r"D:\own detailed files\FZU官方资料\软工\第一次个人编程作业\org.txt"
-    org = read_file(path)  # 读入测试文件
+
+    org = read_file(org_txt)  # 读入测试文件
     # -------------------------------添加敏感词到一个字典中-------------------------------
-    gfw.parse(r"D:\own detailed files\FZU官方资料\软工\第一次个人编程作业\words.txt")  # 解析敏感词文件，将敏感词文件里的敏感词读出并存到gfw.keyword_chains
+    gfw.parse(words_txt)  # 解析敏感词文件，将敏感词文件里的敏感词读出并存到gfw.keyword_chains
+    # chaizi(str_hanzi_word, gfw)
 
     # -------------------------------测试敏感词的核心算法-------------------------------
     gfw.filter(org)
-    output_doc(r"res.txt")
+    output_doc(ans_txt)
     # -------------------------------将检测结果写入指定文件-------------------------------
 
     print(time.time() - t)

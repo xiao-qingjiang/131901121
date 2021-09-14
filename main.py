@@ -94,6 +94,32 @@ class DFAFilter:
                 char = message[lines][i]
                 if char.isalpha():  # 如果是字母，则转为小写
                     char = char.lower()
+                    if char in level:
+                        start = i
+                        record = ""
+                        while start < len(message[lines]):
+                            char = message[lines][start]
+                            if not char.isalpha() and not ('\u4e00' <= char <= '\u9fff'):
+                                start += 1
+                                continue
+                            else:
+                                if char not in level:
+                                    break
+                                record += char
+                                if self.delimit not in level[char]:
+                                    level = level[char]
+
+                                elif self.delimit in level[char]:
+                                    # print(lines, message[lines][i:start + 1])
+                                    if record in hash_keyword:
+                                        result.append(
+                                            "Line" + str(lines + 1) + ": <" + hash_keyword[record] + "> " + message[
+                                                                                                                lines][
+                                                                                                            i:start + 1] + "\n")
+                                    level = self.keyword_chains
+                                    i = start + 1
+                            start += 1
+                        continue
                     if '\u4e00' <= char <= '\u9fff':  # 如果是汉字，则转为简体
                         char = zhconv.convert(char, 'hans')
                         pinyin = pypinyin.lazy_pinyin(char)[0]
@@ -118,32 +144,7 @@ class DFAFilter:
                             level = self.keyword_chains
                             continue
 
-                if char in level:
-                    start = i
-                    record = ""
-                    while start < len(message[lines]):
-                        char = message[lines][start]
-                        if not char.isalpha() and not ('\u4e00' <= char <= '\u9fff'):
-                            start += 1
-                            continue
-                        else:
-                            if char not in level:
-                                break
-                            record += char
-                            if self.delimit not in level[char]:
-                                level = level[char]
 
-                            elif self.delimit in level[char]:
-                                # print(lines, message[lines][i:start + 1])
-                                if record in hash_keyword:
-                                    result.append(
-                                        "Line" + str(lines + 1) + ": <" + hash_keyword[record] + "> " + message[lines][
-                                                                                                        i:start + 1] + "\n")
-                                level = self.keyword_chains
-                                i = start + 1
-                        start += 1
-                else:
-                    continue
 
 
 # def test_first_character():

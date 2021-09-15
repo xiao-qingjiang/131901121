@@ -11,10 +11,10 @@ res_queue = []
 origin_word = {}  # 用来存测试文件的
 hash_keyword = {}
 result = []
-str_han_zi_word = []
+str_han_zi_word = []    # 存所有中文敏感词字符串，方便之后的拆字操作
 
 
-def output_doc(filename):
+def output(filename):           # 将结果列表输出到指定文件
     with open(filename, 'a', encoding='utf-8') as file_object:
         file_object.write("Total: " + str(len(result)) + '\n')
         for i in result:
@@ -27,7 +27,7 @@ class DFAFilter:
         self.keyword_chains = {}
         self.delimit = '\x00'
 
-    def add_keyword(self, chars, level):
+    def add_keyword(self, chars, level):  # 将单词添加到敏感词库的具体操作
         last_level = {}
         last_char = ""
         for i in range(len(chars)):
@@ -44,7 +44,7 @@ class DFAFilter:
                 last_level[last_char] = {self.delimit: 0}
                 break
 
-    def add(self, keyword):  # 将作为参数的敏感词传入敏感词库keyword_chains
+    def add(self, keyword):  # 将作为参数的敏感词传入敏感词库keyword_chains(整体操作，具体斜街操作调用add_keyword函数)
 
         self.add_keyword(keyword, origin_word)  # 将最原始的敏感词加入到origin_word，方便后续输出
         """需要根据是否是中文，中文的话就要考虑拼音、汉字与部首的组合，把各种组合都存进敏感词库，英文字母全部转化为小写存入敏感词库"""
@@ -66,12 +66,11 @@ class DFAFilter:
                     else:                       # 说明这个位置将用首字母表示
                         keyword_copy += pypinyin.lazy_pinyin(keyword[j])[0][0]
                 self.add_keyword(keyword_copy, self.keyword_chains)  # 将每一种敏感词的组合表现形式都加入到敏感词库中
-                hash_keyword[keyword_copy] = keyword
+                hash_keyword[keyword_copy] = keyword    # 建立变形后的敏感词到原始敏感词的映射，方便输出
         else:
-            keyword = keyword.lower()
             level = self.keyword_chains
-            chars = keyword
-            hash_keyword[chars] = chars
+            chars = keyword.lower()
+            hash_keyword[chars] = keyword
             self.add_keyword(chars, level)
 
     def parse(self, path):  # 解析路径，读入文件，并去除每个词前后的空格,最终根据
@@ -79,10 +78,9 @@ class DFAFilter:
             for keyword in f:
                 self.add(keyword.strip())  # 将敏感词库中的敏感词逐个添加到self.keyword_chains里
 
-    def filter(self, message):  # 过滤出敏感词，同时按要求输出
-        start = 0
+    def filter(self, message):  # 过滤出敏感词，并转化为所要求的输出格式，然后把转化结果添加到列表中（最后把结果列表输出到指定文件中）
         for lines in range(len(message)):
-            message[lines] = message[lines].lower()
+            # message[lines] = message[lines].lower()
             level = self.keyword_chains
             record = ""
             flag = 0
@@ -90,6 +88,7 @@ class DFAFilter:
             while i < len(message[lines]) - 1:
                 i += 1
                 char = message[lines][i]
+                char = char.lower()
                 if char.isalpha():  # 如果是字母，则转为小写
                     char = char.lower()
                     if (char in level) and (flag == 0):
@@ -97,6 +96,7 @@ class DFAFilter:
                         record = ""
                         while start < len(message[lines]):
                             char = message[lines][start]
+                            char = char.lower()
                             if not char.isalpha() and not ('\u4e00' <= char <= '\u9fff'):
                                 start += 1
                                 continue
@@ -153,13 +153,13 @@ class DFAFilter:
                     record += char
 
 
-def read_file(file_path):  # 读出文件内容，以字符串的形式存在data
+def read_file(file_path):   # 读出文件内容，以字符串的形式存在data
     with open(file_path, 'r', encoding='utf-8') as file:
         original_word = file.readlines()
     return original_word
 
 
-def chai_zi(keywords, dfa_instance):
+def chai_zi(keywords, dfa_instance):       # 传入汉字字符串进行拆字，并把拆字结果存到dfa.keyword_chains
     wubi98 = Schema('wubi98')
     wubi98.run()
     for word in keywords:
@@ -205,6 +205,7 @@ def type_nums(depth, queue, lens):  # 三个参数分别为当前搜索深度，
 
 
 if __name__ == "__main__":
+    # -------------------------------传入命令行参数-------------------------------
     if len(sys.argv) > 1:
         words_txt = sys.argv[1]
         org_txt = sys.argv[2]
@@ -213,16 +214,12 @@ if __name__ == "__main__":
         words_txt = "words.txt"
         org_txt = "org.txt"
         ans_txt = "ans.txt"
-    gfw = DFAFilter()
-
-    # -------------------------------读入测试文件-------------------------------
+    dfa = DFAFilter()
 
     org = read_file(org_txt)  # 读入测试文件
-    # -------------------------------添加敏感词到一个字典中-------------------------------
-    gfw.parse(words_txt)  # 解析敏感词文件，将敏感词文件里的敏感词读出并存到gfw.keyword_chains
-    chai_zi(str_han_zi_word, gfw)
+    dfa.parse(words_txt)  # 解析敏感词文件，将敏感词文件里的敏感词读出并存到dfa.keyword_chains
+    chai_zi(str_han_zi_word, dfa)   # 将汉字字符串传入进行拆字，并把拆字结果存到dfa.keyword_chains
 
     # -------------------------------测试敏感词的核心算法-------------------------------
-    gfw.filter(org)
-    output_doc(ans_txt)
-    # -------------------------------将检测结果写入指定文件-------------------------------
+    dfa.filter(org)
+    output(ans_txt)

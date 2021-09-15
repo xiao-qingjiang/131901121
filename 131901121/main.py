@@ -1,22 +1,17 @@
 # -*- coding:utf-8 -*-
 
-import time
-
 import pypinyin
 import zhconv
-import pychai
-import os
 import sys
 
 from pychai import Schema
-from xmnlp.checker import unicode
 
-n = 3
+n = 4
 res_queue = []
 origin_word = {}  # 用来存测试文件的
 hash_keyword = {}
 result = []
-str_hanzi_word = []
+str_han_zi_word = []
 
 
 def output_doc(filename):
@@ -33,6 +28,8 @@ class DFAFilter:
         self.delimit = '\x00'
 
     def add_keyword(self, chars, level):
+        last_level = {}
+        last_char = ""
         for i in range(len(chars)):
             if chars[i] in level:
                 level = level[chars[i]]
@@ -53,7 +50,7 @@ class DFAFilter:
         """需要根据是否是中文，中文的话就要考虑拼音、汉字与部首的组合，把各种组合都存进敏感词库，英文字母全部转化为小写存入敏感词库"""
 
         if '\u4e00' <= keyword[0] <= '\u9fff':  # 如果敏感词是汉字
-            str_hanzi_word.append(keyword)
+            str_han_zi_word.append(keyword)
             len_keyword = len(keyword)
             res_queue.clear()  # 每个新的敏感词操作都要清空res_queue，否则后面的会一直添加到前面敏感词的后面
             type_nums(0, [], len_keyword)  # 通过这个操作可以更新全局变量res_queue，这个通过数字存储了敏感词所有表现形式的所有组合
@@ -64,8 +61,10 @@ class DFAFilter:
                         keyword_copy += pypinyin.lazy_pinyin(keyword[j])[0]
                     elif res_queue[i][j] == 1:  # 说明这个位置将用简体字表示
                         keyword_copy += zhconv.convert(keyword[j], 'zh-hans')
-                    else:  # 说明这个位置将用繁体字形式表示
+                    elif res_queue[i][j] == 2:  # 说明这个位置将用繁体字形式表示
                         keyword_copy += zhconv.convert(keyword[j], 'zh-tw')
+                    else:                       # 说明这个位置将用首字母表示
+                        keyword_copy += pypinyin.lazy_pinyin(keyword[j])[0][0]
                 self.add_keyword(keyword_copy, self.keyword_chains)  # 将每一种敏感词的组合表现形式都加入到敏感词库中
                 hash_keyword[keyword_copy] = keyword
         else:
@@ -109,9 +108,8 @@ class DFAFilter:
                                 elif self.delimit in level[char]:
                                     if record in hash_keyword:
                                         result.append(
-                                            "Line" + str(lines + 1) + ": <" + hash_keyword[record] + "> " + message[
-                                                                                                                lines][
-                                                                                                            i:start + 1] + "\n")
+                                            "Line" + str(lines + 1) + ": <" + hash_keyword[record] + "> " +
+                                            message[lines][i:start + 1] + "\n")
                                     level = self.keyword_chains
                                     i = start + 1
                                     break
@@ -125,6 +123,8 @@ class DFAFilter:
                             for j in range(len(pinyin)):
                                 tmp_char = pinyin[j]
                                 if tmp_char not in level:
+                                    flag = 0
+                                    level = self.keyword_chains
                                     break
                                 if self.delimit not in level:
                                     level = level[tmp_char]
@@ -138,14 +138,15 @@ class DFAFilter:
                                             temp_str += temp
                                     if ''.join(pypinyin.lazy_pinyin(temp_str)) in hash_keyword:
                                         result.append(
-                                            "Line" + str(lines + 1) + ": <" + hash_keyword[''.join(pypinyin.lazy_pinyin(temp_str))] + "> " + record + "\n")
+                                            "Line" + str(lines + 1) + ": <" + hash_keyword[
+                                                ''.join(pypinyin.lazy_pinyin(temp_str))] + "> " + record + "\n")
                                     record = ""
                         else:
                             level = self.keyword_chains
                             flag = 0
                             record = ""
                             continue
-                elif len(record) > 0 :
+                elif len(record) > 0:
                     record += char
 
 
@@ -155,8 +156,7 @@ def read_file(file_path):  # 读出文件内容，以字符串的形式存在dat
     return original_word
 
 
-def chaizi(keywords, DFA_instance):
-    # ti = time.time()
+def chai_zi(keywords, dfa_instance):
     wubi98 = Schema('wubi98')
     wubi98.run()
     for word in keywords:
@@ -181,7 +181,7 @@ def chaizi(keywords, DFA_instance):
             res_word += first.name[0]
             res_word += second.name
             res += res_word
-        DFA_instance.add_keyword(res, DFA_instance.keyword_chains)
+        dfa_instance.add_keyword(res, dfa_instance.keyword_chains)
         hash_keyword[res] = word
 
 
@@ -217,7 +217,7 @@ if __name__ == "__main__":
     org = read_file(org_txt)  # 读入测试文件
     # -------------------------------添加敏感词到一个字典中-------------------------------
     gfw.parse(words_txt)  # 解析敏感词文件，将敏感词文件里的敏感词读出并存到gfw.keyword_chains
-    chaizi(str_hanzi_word, gfw)
+    chai_zi(str_han_zi_word, gfw)
 
     # -------------------------------测试敏感词的核心算法-------------------------------
     gfw.filter(org)

@@ -80,13 +80,15 @@ class DFAFilter:
                 self.add(keyword.strip())  # 将敏感词库中的敏感词逐个添加到self.keyword_chains里
 
     def filter(self, message):  # 过滤出敏感词，同时按要求输出
-
+        start = 0
         for lines in range(len(message)):
             message[lines] = message[lines].lower()
             level = self.keyword_chains
             record = ""
             flag = 0
-            for i in range(len(message[lines])):
+            i = -1
+            while i < len(message[lines]) - 1:
+                i += 1
                 char = message[lines][i]
                 if char.isalpha():  # 如果是字母，则转为小写
                     char = char.lower()
@@ -100,6 +102,8 @@ class DFAFilter:
                                 continue
                             else:
                                 if char not in level:
+                                    i = start - 1
+                                    flag = 1
                                     break
                                 record += char
                                 if self.delimit not in level[char]:
@@ -111,7 +115,6 @@ class DFAFilter:
                                             "Line" + str(lines + 1) + ": <" + hash_keyword[record] + "> " +
                                             message[lines][i:start + 1] + "\n")
                                     level = self.keyword_chains
-                                    i = start + 1
                                     break
                             start += 1
                         continue

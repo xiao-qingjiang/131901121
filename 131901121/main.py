@@ -205,6 +205,9 @@ def type_nums(depth, queue, lens):  # 三个参数分别为当前搜索深度，
 
 
 if __name__ == "__main__":
+    words_txt = ""
+    org_txt = ""
+    ans_txt = ""
     # -------------------------------传入命令行参数-------------------------------
     if len(sys.argv) == 4:
         words_txt = sys.argv[1]

@@ -210,10 +210,12 @@ if __name__ == "__main__":
         words_txt = sys.argv[1]
         org_txt = sys.argv[2]
         ans_txt = sys.argv[3]
-    else:
+    elif len(sys.argv) == 1:
         words_txt = "words.txt"
         org_txt = "org.txt"
         ans_txt = "ans.txt"
+    else:
+        print("请按要求输入：python main.py 文件名 文件名 文件名")
     dfa = DFAFilter()
 
     org = read_file(org_txt)  # 读入测试文件

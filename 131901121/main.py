@@ -206,7 +206,7 @@ def type_nums(depth, queue, lens):  # 三个参数分别为当前搜索深度，
 
 if __name__ == "__main__":
     # -------------------------------传入命令行参数-------------------------------
-    if len(sys.argv) > 1:
+    if len(sys.argv) == 4:
         words_txt = sys.argv[1]
         org_txt = sys.argv[2]
         ans_txt = sys.argv[3]
@@ -215,7 +215,9 @@ if __name__ == "__main__":
         org_txt = "org.txt"
         ans_txt = "ans.txt"
     else:
-        print("请按要求输入：python main.py 文件名 文件名 文件名")
+        print("请按正确格式输入：python main.py 文件名 文件名 文件名")
+        exit(0)
+
     dfa = DFAFilter()
 
     org = read_file(org_txt)  # 读入测试文件
